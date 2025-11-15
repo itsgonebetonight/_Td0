@@ -108,7 +108,6 @@ print("  Data Utilities")
 print("  CLI Interface")
 print("  Full Python API")
 print()
-
 print("=" * 80)
 print()
 
@@ -121,7 +120,6 @@ print("  3. Verify output shows 138% return")
 print("  4. Try: python template_customization.py")
 print("  5. Modify parameters and test")
 print()
-
 print("=" * 80)
 print()
 
@@ -129,6 +127,5 @@ print("READY TO START?")
 print()
 print("  python simple_example.py")
 print()
-
 print("=" * 80)
 print()

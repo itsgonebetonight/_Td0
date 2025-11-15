@@ -2,13 +2,9 @@
 """
 Tiny CLI wrapper to run TickServer and OnlineAlgorithm from the py4at repo.
 
-Usage:
-  python main.py server    # start the tick server
-  python main.py strategy  # start the online algorithm (client)
-  python main.py both      # start server then strategy (useful for local demo)
-
-This wrapper runs the upstream scripts as subprocesses so we don't have to
-modify the original repository files.
+This runs upstream scripts as subprocesses so we don't have to modify
+the original repository files. Kept as a demo wrapper separate from the
+main application CLI.
 """
 import argparse
 import logging
@@ -48,7 +44,7 @@ def run_process(cmd: List[str], env: Optional[dict] = None) -> subprocess.Popen:
     try:
         logger.info(f'Starting: {" ".join(cmd)}')
         return subprocess.Popen(
-            cmd, 
+            cmd,
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -69,20 +65,20 @@ def validate_py4at_repository(py4at_root: Path) -> Tuple[Path, Path]:
         logger.error(f'Cannot find py4at repository at {py4at_root}')
         sys.exit(1)
         return
-    
+
     server_script = script_path(py4at_root, *config.server_script_path.split('/'), as_str=False)
     strategy_script = script_path(py4at_root, *config.strategy_script_path.split('/'), as_str=False)
-    
+
     if not server_script.exists():
         logger.error(f'Server script not found: {server_script}')
         sys.exit(1)
         return
-    
+
     if not strategy_script.exists():
         logger.error(f'Strategy script not found: {strategy_script}')
         sys.exit(1)
         return
-    
+
     return server_script, strategy_script
 
 
@@ -92,7 +88,7 @@ def setup_signal_handlers(processes: List[subprocess.Popen]) -> None:
         logger.info(f'Received signal {signum} — terminating subprocesses...')
         terminate_processes(processes)
         sys.exit(0)
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -116,10 +112,10 @@ def terminate_processes(processes: List[subprocess.Popen]) -> None:
 def monitor_processes(processes: List[subprocess.Popen]) -> None:
     """Monitor running processes and log their output."""
     active_processes = [p for p in processes if p is not None]
-    
+
     while active_processes:
         time.sleep(config.process_monitor_interval)
-        
+
         # Check for process output
         for proc in active_processes[:]:
             if proc.poll() is not None:
@@ -150,8 +146,8 @@ Examples:
         """
     )
     parser.add_argument(
-        'mode', 
-        choices=['server', 'strategy', 'both'], 
+        'mode',
+        choices=['server', 'strategy', 'both'],
         help='what to run (server, strategy, or both)'
     )
     parser.add_argument(
@@ -160,7 +156,7 @@ Examples:
         help='enable verbose logging'
     )
     args = parser.parse_args()
-    
+
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
@@ -168,7 +164,7 @@ Examples:
     here = Path(__file__).parent.absolute()
     workspace_root = here.parent
     py4at_root = config.get_py4at_root(workspace_root)
-    
+
     logger.info(f'Workspace root: {workspace_root}')
     logger.info(f'py4at repository: {py4at_root}')
 
@@ -176,7 +172,7 @@ Examples:
     python = sys.executable or 'python'
 
     processes: List[subprocess.Popen] = []
-    
+
     try:
         if args.mode in ('server', 'both'):
             server_proc = run_process([python, '-u', str(server_script)])
@@ -191,10 +187,10 @@ Examples:
 
         # Setup signal handlers for graceful shutdown
         setup_signal_handlers(processes)
-        
+
         # Monitor processes
         monitor_processes(processes)
-        
+
     except KeyboardInterrupt:
         logger.info('Keyboard interrupt received — terminating subprocesses...')
     except Exception as e:

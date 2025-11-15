@@ -8,7 +8,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent))
 
 from config import Config
-from main import script_path, validate_py4at_repository, terminate_processes
+from demo_wrapper import script_path, validate_py4at_repository, terminate_processes
 
 
 class TestConfig(unittest.TestCase):
@@ -43,8 +43,8 @@ class TestMainFunctions(unittest.TestCase):
         # Compare by suffix so test is stable across platforms (Windows vs POSIX)
         self.assertTrue(result.as_posix().endswith('test/root/ch07/TickServer.py'))
     
-    @patch('main.logger')
-    @patch('main.sys.exit')
+    @patch('demo_wrapper.logger')
+    @patch('demo_wrapper.sys.exit')
     def test_validate_py4at_repository_missing_dir(self, mock_exit, mock_logger):
         """Test validation when py4at directory doesn't exist."""
         non_existent_path = Path('/non/existent/path')
@@ -52,8 +52,8 @@ class TestMainFunctions(unittest.TestCase):
         mock_logger.error.assert_called_once()
         mock_exit.assert_called_once_with(1)
     
-    @patch('main.logger')
-    @patch('main.sys.exit')
+    @patch('demo_wrapper.logger')
+    @patch('demo_wrapper.sys.exit')
     def test_validate_py4at_repository_missing_script(self, mock_exit, mock_logger):
         """Test validation when script files don't exist."""
         import tempfile
@@ -70,7 +70,7 @@ class TestMainFunctions(unittest.TestCase):
             mock_exit.assert_called_once_with(1)
     
     @patch('subprocess.Popen')
-    @patch('main.logger')
+    @patch('demo_wrapper.logger')
     def test_terminate_processes(self, mock_logger, mock_popen):
         """Test process termination."""
         # Create mock process that's still running
@@ -89,10 +89,10 @@ class TestMainFunctions(unittest.TestCase):
 class TestIntegration(unittest.TestCase):
     """Integration tests for the main application."""
     
-    @patch('main.validate_py4at_repository')
-    @patch('main.run_process')
-    @patch('main.monitor_processes')
-    @patch('main.setup_signal_handlers')
+    @patch('demo_wrapper.validate_py4at_repository')
+    @patch('demo_wrapper.run_process')
+    @patch('demo_wrapper.monitor_processes')
+    @patch('demo_wrapper.setup_signal_handlers')
     def test_main_server_mode(self, mock_signals, mock_monitor, mock_run, mock_validate):
         """Test main function in server mode."""
         import tempfile
@@ -109,19 +109,19 @@ class TestIntegration(unittest.TestCase):
         mock_run.return_value = mock_proc
         
         # Mock argument parsing
-        with patch('main.argparse.ArgumentParser.parse_args') as mock_parse:
+        with patch('demo_wrapper.argparse.ArgumentParser.parse_args') as mock_parse:
             mock_args = Mock()
             mock_args.mode = 'server'
             mock_args.verbose = False
             mock_parse.return_value = mock_args
             
-            # Import and run main
-            from main import main
+            # Import and run main from demo_wrapper
+            from demo_wrapper import main
             
             # Mock the path operations
-            with patch('main.Path') as mock_path:
+            with patch('demo_wrapper.Path') as mock_path:
                 mock_path.return_value.parent.parent = tmp_path
-                with patch('main.config.get_py4at_root') as mock_get_root:
+                with patch('demo_wrapper.config.get_py4at_root') as mock_get_root:
                     mock_get_root.return_value = tmp_path
 
                     try:

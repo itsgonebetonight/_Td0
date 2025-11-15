@@ -109,7 +109,6 @@ print("  3. GETTING_STARTED.md     ← Installation")
 print("  4. README.md              ← Full documentation")
 print("  5. PACKAGE_STRUCTURE.md   ← Architecture details")
 print()
-
 print("=" * 80)
 print()
 
@@ -152,7 +151,6 @@ print("  ✅ Data Utilities")
 print("  ✅ CLI Interface")
 print("  ✅ Full Python API")
 print()
-
 print("=" * 80)
 print()
 
@@ -196,39 +194,4 @@ print("  2. ✅ Run: python simple_example.py")
 print("  3. ✅ Verify output shows 138% return")
 print("  4. ✅ Try: python template_customization.py")
 print("  5. ✅ Modify parameters and test")
-print()
-
-print("=" * 80)
-print()
-
-print("🎓 LEARNING OUTCOMES:")
-print("-" * 80)
-print()
-print("  After running the examples, you'll understand:")
-print()
-print("  ✓ How to load historical data")
-print("  ✓ How to create a trading strategy")
-print("  ✓ How to run a backtest")
-print("  ✓ How to calculate performance metrics")
-print("  ✓ How to optimize parameters")
-print("  ✓ How to compare strategies")
-print("  ✓ How to export and analyze results")
-print()
-
-print("=" * 80)
-print()
-
-print("🚀 READY TO START?")
-print()
-print("  cd c:\\Users\\HP\\Downloads\\__Td0\\__Td0\\py4at_app")
-print("  python simple_example.py")
-print()
-
-print("=" * 80)
-print()
-
-print("✨ ENJOY BUILDING YOUR TRADING STRATEGIES! ✨")
-print()
-
-print("=" * 80)
 print()

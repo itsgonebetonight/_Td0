@@ -196,18 +196,3 @@ def main():
         print("-" * 70)
         
         return False
-
-
-if __name__ == '__main__':
-    success = main()
-    
-    if success:
-        print("╔" + "=" * 68 + "╗")
-        print("║" + "  ✓ ALL TESTS PASSED - FRAMEWORK IS WORKING!  ".center(68) + "║")
-        print("╚" + "=" * 68 + "╝")
-        print()
-    else:
-        print("╔" + "=" * 68 + "╗")
-        print("║" + "  ❌ TESTS FAILED - SEE ERRORS ABOVE  ".center(68) + "║")
-        print("╚" + "=" * 68 + "╝")
-        print()
