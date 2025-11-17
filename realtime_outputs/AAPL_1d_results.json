@@ -1,0 +1,16 @@
+{
+  "results": {
+    "performance": 0.0,
+    "signal_stats": {
+      "total_signals": 75,
+      "buy_signals": "15",
+      "sell_signals": "60",
+      "high_confidence_signals": "0",
+      "high_conf_percentage": 0.0,
+      "avg_probability": 0.3376575572045213
+    },
+    "trades": 0,
+    "final_amount": 10000,
+    "trade_log": []
+  }
+}

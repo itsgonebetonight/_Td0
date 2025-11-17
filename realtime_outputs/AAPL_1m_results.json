@@ -1,0 +1,59 @@
+{
+  "results": {
+    "performance": -0.2430819534301736,
+    "signal_stats": {
+      "total_signals": 774,
+      "buy_signals": "587",
+      "sell_signals": "187",
+      "high_confidence_signals": "391",
+      "high_conf_percentage": 50.51679586563308,
+      "avg_probability": 0.541981148603179
+    },
+    "trades": 10,
+    "final_amount": 9975.691804656983,
+    "trade_log": [
+      {
+        "side": "long",
+        "entry_bar": 200,
+        "entry_date": "2025-11-14",
+        "entry_price": 273.2099914550781,
+        "units": 3,
+        "exit_bar": 510,
+        "exit_date": "2025-11-14",
+        "exit_price": 273.1700134277344,
+        "pnl": -0.11993408203125,
+        "return_pct": -0.0001463271058676611,
+        "hold_bars": 310,
+        "status": "closed"
+      },
+      {
+        "side": "long",
+        "entry_bar": 512,
+        "entry_date": "2025-11-14",
+        "entry_price": 273.0799865722656,
+        "units": 3,
+        "exit_bar": null,
+        "exit_date": null,
+        "exit_price": null,
+        "pnl": null,
+        "return_pct": null,
+        "hold_bars": null,
+        "status": "open"
+      },
+      {
+        "side": "long",
+        "entry_bar": 538,
+        "entry_date": "2025-11-17",
+        "entry_price": 268.25,
+        "units": 3,
+        "exit_bar": 773,
+        "exit_date": "2025-11-17",
+        "exit_price": 267.8399963378906,
+        "pnl": -1.230010986328125,
+        "return_pct": -0.0015284386285531221,
+        "hold_bars": 235,
+        "status": "closed"
+      }
+    ]
+  }
+}

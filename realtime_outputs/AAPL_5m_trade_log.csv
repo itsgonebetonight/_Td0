@@ -1,0 +1,4 @@
+side,entry_bar,entry_date,entry_price,units,exit_bar,exit_date,exit_price,pnl,return_pct,hold_bars,status
+long,235,2025-10-27,265.6050109863281,3,,,,,,,open
+long,1204,2025-11-13,272.8951110839844,3,,,,,,,open
+long,1394,2025-11-17,267.7099914550781,3,1394.0,2025-11-17,267.7099914550781,0.0,0.0,0.0,closed
