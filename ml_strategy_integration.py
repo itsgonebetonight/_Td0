@@ -15,8 +15,10 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(__file__))
+# Add parent directory and __Td0/py4at_app to path
+current_dir = os.path.dirname(__file__)
+sys.path.insert(0, current_dir)
+sys.path.insert(0, os.path.join(current_dir, '__Td0', 'py4at_app'))
 
 # Import from your existing framework
 from py4at_app.backtesting import BacktestBase
@@ -36,7 +38,7 @@ class MLEnhancedBacktester(BacktestBase):
                  ftc: float = 0.0, ptc: float = 0.0, verbose: bool = True,
                  risk_fraction: float = 0.01, stop_loss_pct: float = 0.02,
                  take_profit_pct: float = 0.04, slippage: float = 0.0005,
-                 retrain_interval: int = 0):
+                 retrain_interval: int = 0, confirmation_bars: int = 1, dynamic_atr_k: float = 0.0):
         """
         Initialize ML Enhanced Backtester.
         
@@ -76,6 +78,10 @@ class MLEnhancedBacktester(BacktestBase):
         self.entry_price = None
         self.stop_price = None
         self.tp_price = None
+        # Advanced execution filters
+        self.confirmation_bars = confirmation_bars
+        # If > 0, use ATR-based stop: stop = entry_price - dynamic_atr_k * atr_14 (long)
+        self.dynamic_atr_k = dynamic_atr_k
         # Shorting and trade log
         self.short_units = 0
         self.short_entry_price = None
@@ -325,6 +331,17 @@ class MLEnhancedBacktester(BacktestBase):
             current_pred = int(preds[bar])
             date, price = self.get_date_price(bar)
 
+            # Confirmation: require same prediction for last `confirmation_bars` bars
+            if self.confirmation_bars and self.confirmation_bars > 1:
+                start_idx = max(min_bars, bar - (self.confirmation_bars - 1))
+                window_preds = preds[start_idx:bar + 1]
+                window_probs = probs[start_idx:bar + 1]
+                # require all preds equal to current_pred and probs >= threshold
+                if not all(int(p) == current_pred for p in window_preds):
+                    continue
+                if not all(float(pv) >= self.confidence_threshold for pv in window_probs):
+                    continue
+
             # Walk-forward retrain if requested (simple full retrain on expanding window)
             if self.retrain_interval and (bar - min_bars) % self.retrain_interval == 0 and bar > min_bars:
                 # retrain on all data up to current bar
@@ -385,10 +402,18 @@ class MLEnhancedBacktester(BacktestBase):
                         if units <= 0:
                             continue
 
+                    # Set dynamic ATR-based stop if configured
+                    atr = None
+                    if self.dynamic_atr_k and 'atr_14' in self.data.columns:
+                        atr = float(self.data['atr_14'].iloc[bar])
+
                     self.enter_long(bar, units)
                     self.position = 1
                     self.entry_price = price
-                    self.stop_price = price * (1 - self.stop_loss_pct)
+                    if atr is not None and atr > 0 and self.dynamic_atr_k > 0:
+                        self.stop_price = price - (self.dynamic_atr_k * atr)
+                    else:
+                        self.stop_price = price * (1 - self.stop_loss_pct)
                     self.tp_price = price * (1 + self.take_profit_pct)
 
                 # Short entry (if allowed)
@@ -400,11 +425,17 @@ class MLEnhancedBacktester(BacktestBase):
                         if units <= 0:
                             continue
 
+                    atr = None
+                    if self.dynamic_atr_k and 'atr_14' in self.data.columns:
+                        atr = float(self.data['atr_14'].iloc[bar])
+
                     self.enter_short(bar, units)
                     self.position = -1
                     self.entry_price = price
-                    # For short: stop is above entry, tp is below
-                    self.stop_price = price * (1 + self.stop_loss_pct)
+                    if atr is not None and atr > 0 and self.dynamic_atr_k > 0:
+                        self.stop_price = price + (self.dynamic_atr_k * atr)
+                    else:
+                        self.stop_price = price * (1 + self.stop_loss_pct)
                     self.tp_price = price * (1 - self.take_profit_pct)
 
             # Manage existing long position
@@ -465,6 +496,7 @@ class MLEnhancedBacktester(BacktestBase):
 
         # Final close out
         self.close_out(len(self.data) - 1)
+
 
     def close_out(self, bar: int):
         """Override to record any open trades before closing out.
@@ -529,7 +561,7 @@ class MLTradingStrategy:
         self.data_with_features = None
         self.backtest_results = None
     
-    def prepare_data(self, data: pd.DataFrame) -> pd.DataFrame:
+    def prepare_data(self, data: pd.DataFrame, future_h: int = 5, ret_threshold: float = 0.0003) -> pd.DataFrame:
         """
         Prepare data with technical indicators.
         
@@ -543,9 +575,9 @@ class MLTradingStrategy:
         pd.DataFrame : Data with features
         """
         from enhanced_predictor import EnhancedFeatureEngineering
-        
+
         fe = EnhancedFeatureEngineering()
-        data_with_features = fe.add_technical_indicators(data)
+        data_with_features = fe.add_technical_indicators(data, future_h=future_h, ret_threshold=ret_threshold)
         
         return data_with_features
     
@@ -577,7 +609,8 @@ class MLTradingStrategy:
                 initial_amount: float = 10000, tc: float = 0.001,
                 risk_fraction: float = 0.01, stop_loss_pct: float = 0.02,
                 take_profit_pct: float = 0.04, slippage: float = 0.0005,
-                retrain_interval: int = 0, allow_short: bool = True) -> dict:
+                retrain_interval: int = 0, allow_short: bool = True,
+                confirmation_bars: int = 1, dynamic_atr_k: float = 0.0) -> dict:
         """
         Backtest the ML strategy.
         
@@ -621,6 +654,7 @@ class MLTradingStrategy:
             take_profit_pct=take_profit_pct,
             slippage=slippage,
             retrain_interval=retrain_interval
+            ,confirmation_bars=confirmation_bars, dynamic_atr_k=dynamic_atr_k
         )
         backtester.allow_short = allow_short
         
@@ -634,16 +668,18 @@ class MLTradingStrategy:
         # Run strategy
         backtester.run_ml_strategy()
         
-        # Calculate performance
+        # Calculate performance and trade summary
         performance = backtester.get_performance()
         signal_stats = backtester.get_signal_statistics()
+        trade_summary = backtester.summarize_trade_log()
         
         self.backtest_results = {
             'performance': performance,
             'signal_stats': signal_stats,
             'trades': backtester.trades,
             'final_amount': backtester.amount,
-            'trade_log': backtester.trade_log
+            'trade_log': backtester.trade_log,
+            'trade_summary': trade_summary
         }
         
         return self.backtest_results

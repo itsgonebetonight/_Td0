@@ -35,7 +35,7 @@ class EnhancedFeatureEngineering:
     """
     
     @staticmethod
-    def add_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
+    def add_technical_indicators(data: pd.DataFrame, future_h: int = 1, ret_threshold: float = 0.0) -> pd.DataFrame:
         """
         Add comprehensive technical indicators to the dataset.
         
@@ -123,8 +123,19 @@ class EnhancedFeatureEngineering:
             df[f'lag_{lag}'] = df['returns'].shift(lag)
             df[f'price_lag_{lag}'] = df['price'].shift(lag)
         
-        # Target variable (next period return direction)
-        df['target'] = np.where(df['returns'].shift(-1) > 0, 1, 0)
+        # Target variable: future return over `future_h` bars with threshold
+        # Use log returns over horizon to reduce scale issues
+        if future_h <= 1:
+            df['future_log_return'] = np.log(df['price'] / df['price'].shift(-1))
+        else:
+            df['future_log_return'] = np.log(df['price'].shift(-future_h) / df['price'])
+
+        # threshold in absolute return (e.g., 0.0003 ~ 0.03%)
+        df['target'] = 0
+        df.loc[df['future_log_return'] > ret_threshold, 'target'] = 1
+        df.loc[df['future_log_return'] < -ret_threshold, 'target'] = 0
+        # rows near the end will have NaN future return
+        df.loc[df['future_log_return'].isna(), 'target'] = np.nan
         
         return df
     
@@ -229,34 +240,59 @@ class EnhancedTradingPredictor:
         tuple : (X, y, feature_names)
         """
         # Select features (exclude non-feature columns)
-        exclude_cols = ['price', 'target', 'returns', 'log_returns', 'tr']
+        exclude_cols = ['price', 'target', 'returns', 'log_returns', 'tr', 'future_log_return']
         feature_cols = [col for col in data.columns if col not in exclude_cols]
-        
+
         # Remove columns with too many NaN values
         valid_cols = []
         for col in feature_cols:
             if data[col].notna().sum() / len(data) > 0.7:  # At least 70% non-NaN
                 valid_cols.append(col)
-        
-        X = data[valid_cols].copy()
+
+        # Minimal curated feature set to reduce dimensionality (keep if present)
+        preferred = [
+            'returns', 'log_returns',
+            'volatility_10', 'volatility_20', 'volatility_ratio_50',
+            'price_to_sma_20', 'price_to_sma_50',
+            'rsi', 'macd_diff',
+            'atr_14', 'volume_proxy',
+        ]
+
+        # add short-return lags and simple lags
+        for lag in range(1, 6):
+            preferred.append(f'lag_{lag}')
+
+        selected = [c for c in preferred if c in valid_cols]
+        if selected:
+            X = data[selected].copy()
+            valid_cols = selected
+        else:
+            X = data[valid_cols].copy()
+
         y = data['target'].copy()
-        
+
         # Fill remaining NaN values
         X = X.fillna(method='ffill').fillna(method='bfill').fillna(0)
         
         return X, y, valid_cols
 
-    def _calibrate_model(self, model, X_train, y_train):
+    def _calibrate_model(self, model, X_train, y_train, sample_weight=None):
         """Wrap model in a calibrated classifier (probability calibration)."""
         try:
             # Use sigmoid (Platt) calibration for probabilities
             calibrated = CalibratedClassifierCV(base_estimator=model, cv=3, method='sigmoid')
-            calibrated.fit(X_train, y_train)
+            if sample_weight is not None:
+                calibrated.fit(X_train, y_train, sample_weight=sample_weight)
+            else:
+                calibrated.fit(X_train, y_train)
             return calibrated
         except Exception:
             # If calibration fails, return original model fitted
             try:
-                model.fit(X_train, y_train)
+                if sample_weight is not None:
+                    model.fit(X_train, y_train, sample_weight=sample_weight)
+                else:
+                    model.fit(X_train, y_train)
             except Exception:
                 pass
             return model
@@ -369,13 +405,26 @@ class EnhancedTradingPredictor:
         for name, model in self.models.items():
             print(f"\nTraining {name}...")
             try:
-                # Fit the base model first on scaled data
-                model.fit(X_train_scaled, y_train)
+                # Compute simple sample weights (inverse frequency) to help imbalance
+                counts = y_train.value_counts().to_dict()
+                sample_weight = None
+                if 0 in counts and 1 in counts and counts[0] > 0 and counts[1] > 0:
+                    sample_weight = y_train.map(lambda v: 1.0 / counts[v]).values
+
+                # Fit the base model first on scaled data (try sample_weight if supported)
+                try:
+                    if sample_weight is not None:
+                        model.fit(X_train_scaled, y_train, sample_weight=sample_weight)
+                    else:
+                        model.fit(X_train_scaled, y_train)
+                except TypeError:
+                    # some models may not accept sample_weight
+                    model.fit(X_train_scaled, y_train)
 
                 # Optionally calibrate probabilities using scaled features
                 calibrated_model = None
                 try:
-                    calibrated_model = self._calibrate_model(model, X_train_scaled, y_train)
+                    calibrated_model = self._calibrate_model(model, X_train_scaled, y_train, sample_weight=sample_weight)
                 except Exception:
                     calibrated_model = model
 

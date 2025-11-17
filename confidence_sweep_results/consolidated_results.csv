@@ -1,0 +1,9 @@
+confidence_threshold,total_trades,closed_trades,win_rate,net_pnl,avg_hold_bars,max_drawdown,sharpe,final_amount,strategy_type,confirmation_bars,dynamic_atr_k,risk_fraction,signal_density
+0.5,81,22,0.4090909090909091,-7.32843017578125,20.40909090909091,11.65869140625,-2.7223514364892387,9940.202702239998,"Baseline (1% risk, no conf, fixed stop)",1,0.0,0.01,
+0.55,6,1,0.0,-3.614959716796875,327.0,3.614959716796875,,9973.090846221923,"Baseline (1% risk, no conf, fixed stop)",1,0.0,0.01,
+0.6,6,1,0.0,-3.614959716796875,327.0,3.614959716796875,,9971.438316207888,"Baseline (1% risk, no conf, fixed stop)",1,0.0,0.01,
+0.65,6,1,0.0,-3.614959716796875,327.0,3.614959716796875,,9971.438316207888,"Baseline (1% risk, no conf, fixed stop)",1,0.0,0.01,
+0.55,27,1,0.0,0.0,0.0,0.0,,9953.374593078614,"Improved (ATR stop, 2-bar conf)",2,2.0,0.02,
+0.6,21,1,1.0,0.43505859375,1.0,0.0,,9956.462920684817,"Improved (ATR stop, 2-bar conf)",2,2.0,0.02,
+0.55,27,1,0.0,0.0,0.0,0.0,,9984.458197692877,"Improved (ATR stop, 2-bar conf)",2,2.0,0.05,
+0.6,21,1,1.0,0.14501953125,1.0,0.0,,9985.487640228272,"Improved (ATR stop, 2-bar conf)",2,2.0,0.05,

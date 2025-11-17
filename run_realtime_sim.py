@@ -70,7 +70,8 @@ def run_for_symbol_interval(symbol, interval, quick_demo=True):
     print(f"Rows total: {len(df)} | Train: {len(train)} | Test: {len(test)}")
 
     ml = MLTradingStrategy(symbol=symbol)
-    train_with_features = ml.prepare_data(train)
+    # engineer features and use a 5-bar future horizon with small threshold to reduce noise
+    train_with_features = ml.prepare_data(train, future_h=5, ret_threshold=0.0003)
     print('Training features shape:', train_with_features.shape)
     try:
         train_results = ml.train(train_with_features, test_size=0.2)
@@ -82,7 +83,8 @@ def run_for_symbol_interval(symbol, interval, quick_demo=True):
 
     # Backtest on test (simulate recent live run)
     try:
-        results = ml.backtest(test, confidence_threshold=0.55, retrain_interval=0, allow_short=True)
+        # Use stricter confidence threshold and periodic retrain (simulate real-time retraining every 60 bars)
+        results = ml.backtest(test, confidence_threshold=0.65, retrain_interval=60, allow_short=True)
         ml.print_results()
 
         # save results and trade_log
@@ -129,13 +131,13 @@ def main():
 
     # Run limited demo across symbols and intervals
     runs = []
-    demo_symbols = SYMBOLS[:2]  # limit to first two symbols to keep run quick
-    for sym in demo_symbols:
-        for iv in INTERVALS:
-            res = run_for_symbol_interval(sym, iv)
-            runs.append((sym, iv, res))
-            # sleep briefly to avoid throttling
-            time.sleep(1)
+    # For a longer live-sim, run a single symbol & 1m interval step-through
+    demo_symbol = SYMBOLS[0]
+    demo_interval = '1m'
+    res = run_for_symbol_interval(demo_symbol, demo_interval, quick_demo=False)
+    runs.append((demo_symbol, demo_interval, res))
+    # sleep to avoid throttling
+    time.sleep(2)
     print('\nDemo complete. Outputs in', OUTPUT_DIR)
 
 

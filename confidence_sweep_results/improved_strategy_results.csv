@@ -1,0 +1,5 @@
+confidence_threshold,total_trades,closed_trades,win_rate,net_pnl,avg_hold_bars,max_drawdown,sharpe,final_amount,risk_fraction,confirmation_bars,dynamic_atr_k
+0.55,27,1,0.0,0.0,0.0,0.0,,9953.374593078614,0.02,2,2.0
+0.6,21,1,1.0,0.43505859375,1.0,0.0,,9956.462920684815,0.02,2,2.0
+0.55,27,1,0.0,0.0,0.0,0.0,,9984.458197692875,0.05,2,2.0
+0.6,21,1,1.0,0.14501953125,1.0,0.0,,9985.487640228273,0.05,2,2.0

@@ -17,7 +17,7 @@ warnings.filterwarnings('ignore')
 
 class EnhancedFeatureEngineering:
     @staticmethod
-    def add_technical_indicators(data: pd.DataFrame) -> pd.DataFrame:
+    def add_technical_indicators(data: pd.DataFrame, future_h: int = 1, ret_threshold: float = 0.0) -> pd.DataFrame:
         df = data.copy()
         df['returns'] = df['price'].pct_change()
         df['log_returns'] = np.log(df['price'] / df['price'].shift(1))
@@ -62,7 +62,16 @@ class EnhancedFeatureEngineering:
         for lag in range(1, 11):
             df[f'lag_{lag}'] = df['returns'].shift(lag)
             df[f'price_lag_{lag}'] = df['price'].shift(lag)
-        df['target'] = np.where(df['returns'].shift(-1) > 0, 1, 0)
+        # Target variable: future return over `future_h` bars with threshold
+        if future_h <= 1:
+            df['future_log_return'] = np.log(df['price'] / df['price'].shift(-1))
+        else:
+            df['future_log_return'] = np.log(df['price'].shift(-future_h) / df['price'])
+
+        df['target'] = 0
+        df.loc[df['future_log_return'] > ret_threshold, 'target'] = 1
+        df.loc[df['future_log_return'] < -ret_threshold, 'target'] = 0
+        df.loc[df['future_log_return'].isna(), 'target'] = np.nan
         return df
 
     @staticmethod
@@ -110,25 +119,48 @@ class EnhancedTradingPredictor:
             self.models['xgboost'] = xgb_model
 
     def prepare_features(self, data: pd.DataFrame) -> tuple:
-        exclude_cols = ['price', 'target', 'returns', 'log_returns', 'tr']
+        exclude_cols = ['price', 'target', 'returns', 'log_returns', 'tr', 'future_log_return']
         feature_cols = [col for col in data.columns if col not in exclude_cols]
         valid_cols = []
         for col in feature_cols:
             if data[col].notna().sum() / len(data) > 0.7:
                 valid_cols.append(col)
-        X = data[valid_cols].copy()
+
+        preferred = [
+            'returns', 'log_returns',
+            'volatility_10', 'volatility_20', 'volatility_ratio_50',
+            'price_to_sma_20', 'price_to_sma_50',
+            'rsi', 'macd_diff',
+            'atr_14', 'volume_proxy',
+        ]
+        for lag in range(1, 6):
+            preferred.append(f'lag_{lag}')
+
+        selected = [c for c in preferred if c in valid_cols]
+        if selected:
+            X = data[selected].copy()
+            valid_cols = selected
+        else:
+            X = data[valid_cols].copy()
+
         y = data['target'].copy()
         X = X.fillna(method='ffill').fillna(method='bfill').fillna(0)
         return X, y, valid_cols
 
-    def _calibrate_model(self, model, X_train, y_train):
+    def _calibrate_model(self, model, X_train, y_train, sample_weight=None):
         try:
             calibrated = CalibratedClassifierCV(base_estimator=model, cv=3, method='sigmoid')
-            calibrated.fit(X_train, y_train)
+            if sample_weight is not None:
+                calibrated.fit(X_train, y_train, sample_weight=sample_weight)
+            else:
+                calibrated.fit(X_train, y_train)
             return calibrated
         except Exception:
             try:
-                model.fit(X_train, y_train)
+                if sample_weight is not None:
+                    model.fit(X_train, y_train, sample_weight=sample_weight)
+                else:
+                    model.fit(X_train, y_train)
             except Exception:
                 pass
             return model
@@ -171,12 +203,25 @@ class EnhancedTradingPredictor:
         for name, model in self.models.items():
             print(f"\nTraining {name}...")
             try:
-                model.fit(X_train_scaled, y_train)
+                counts = y_train.value_counts().to_dict()
+                sample_weight = None
+                if 0 in counts and 1 in counts and counts[0] > 0 and counts[1] > 0:
+                    sample_weight = y_train.map(lambda v: 1.0 / counts[v]).values
+
+                try:
+                    if sample_weight is not None:
+                        model.fit(X_train_scaled, y_train, sample_weight=sample_weight)
+                    else:
+                        model.fit(X_train_scaled, y_train)
+                except TypeError:
+                    model.fit(X_train_scaled, y_train)
+
                 calibrated_model = None
                 try:
-                    calibrated_model = self._calibrate_model(model, X_train_scaled, y_train)
+                    calibrated_model = self._calibrate_model(model, X_train_scaled, y_train, sample_weight=sample_weight)
                 except Exception:
                     calibrated_model = model
+
                 metrics = self.evaluate_model(calibrated_model, X_test_scaled, y_test)
                 results[name] = metrics
                 self.model_scores[name] = metrics['f1']
