@@ -1,0 +1,2 @@
+csv,rows,future_h,ret_threshold,final_amount,trades,closed_trades,total_pnl,wins,losses,win_rate,avg_pnl_per_trade,max_drawdown,avg_hold_bars,long_trades,long_pnl,long_win_rate,short_trades,short_pnl,short_win_rate,net_pnl,return_pct,signal_density,closed_trade_ratio
+py4at\data\AAPL_7d_1m.csv,2370,5,0.0002,9989.877698852535,47,6,9.946533203125,6,0,1.0,1.6577555338541667,0.0,79.66666666666667,6,9.946533203125,1.0,0,0,0,-10.122301147464896,-0.10122301147464895,1.9831223628691983,0.1276595744680851

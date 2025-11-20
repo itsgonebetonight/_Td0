@@ -45,7 +45,7 @@ def run_label_sweep():
     
     # Label configurations to test
     FUTURE_H_VALUES = [3, 5]
-    RET_THRESHOLD_VALUES = [0.00005, 0.0001, 0.00015, 0.0002]
+    RET_THRESHOLD_VALUES = [round(x, 5) for x in [0.00003, 0.00004, 0.00005, 0.00006, 0.00007, 0.00008]]
     
     # Output directory
     output_dir = Path(__file__).parent / "label_sweep_results"
@@ -54,11 +54,7 @@ def run_label_sweep():
     # Load data
     # Try multiple possible locations (prefer minute data for more bars)
     possible_paths = [
-        Path(__file__).parent / "py4at" / "data" / "AAPL_1min_05052020.csv",
-        Path(__file__).parent / "data" / "AAPL_1min_05052020.csv",
-        Path(__file__).parent / "py4at" / "data" / "AAPL.csv",
-        Path(__file__).parent / "data" / "AAPL.csv",
-        Path(__file__).parent / "__Td0" / "py4at_app" / "data" / "AAPL_1min_05052020.csv",
+        Path(__file__).parent / "py4at" / "data" / "AAPL_7d_1m.csv"
     ]
     
     data_path = None
@@ -73,15 +69,10 @@ def run_label_sweep():
             print(f"  - {path}")
         return None
     
-    raw_data = pd.read_csv(data_path, index_col=0, parse_dates=True)
-    # Normalize column names - try both Close and CLOSE
-    if 'Close' in raw_data.columns:
-        raw_data.rename(columns={'Close': 'price'}, inplace=True)
-    elif 'CLOSE' in raw_data.columns:
-        raw_data.rename(columns={'CLOSE': 'price'}, inplace=True)
-    else:
-        print(f"ERROR: No 'Close' or 'CLOSE' column found. Columns: {raw_data.columns.tolist()}")
-        return None
+    # Skip first three header rows to get valid numeric data
+    raw_data = pd.read_csv(data_path, index_col=0, parse_dates=True, skiprows=3)
+    # Rename first column to 'price'
+    raw_data.columns = ['price'] + list(raw_data.columns[1:])
     
     # Keep only price column
     raw_data = raw_data[['price']].copy()
@@ -139,7 +130,7 @@ def run_label_sweep():
                     take_profit_pct=BEST_CONFIG['take_profit_pct'],
                     slippage=BEST_CONFIG['slippage'],
                     retrain_interval=60,
-                    allow_short=True,
+                    allow_short=False,
                     confirmation_bars=BEST_CONFIG['confirmation_bars'],
                     dynamic_atr_k=BEST_CONFIG['dynamic_atr_k']
                 )
